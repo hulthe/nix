@@ -912,7 +912,7 @@ pub enum ControlMessageOwned {
     ///
     /// `UdpGroSegment` socket option should be enabled on a socket
     /// to allow receiving GRO packets.
-    #[cfg(target_os = "linux")]
+    #[cfg(linux_android)]
     #[cfg(feature = "net")]
     #[cfg_attr(docsrs, doc(cfg(feature = "net")))]
     UdpGroSegments(i32),
@@ -985,6 +985,11 @@ impl From<u8> for TlsGetRecordType {
         }
     }
 }
+
+#[cfg(target_os = "android")]
+const UDP_GRO: c_int = 104;
+#[cfg(target_os = "linux")]
+const UDP_GRO: c_int = libc::UDP_GRO;
 
 impl ControlMessageOwned {
     /// Decodes a `ControlMessageOwned` from raw bytes.
@@ -1087,9 +1092,9 @@ impl ControlMessageOwned {
                 let dl = unsafe { ptr::read_unaligned(p as *const libc::sockaddr_in) };
                 ControlMessageOwned::Ipv4OrigDstAddr(dl)
             },
-            #[cfg(target_os = "linux")]
+            #[cfg(linux_android)]
             #[cfg(feature = "net")]
-            (libc::SOL_UDP, libc::UDP_GRO) => {
+            (libc::SOL_UDP, UDP_GRO) => {
                 let gso_size: i32 = unsafe { ptr::read_unaligned(p as *const _) };
                 ControlMessageOwned::UdpGroSegments(gso_size)
             },

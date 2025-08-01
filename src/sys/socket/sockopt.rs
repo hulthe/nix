@@ -1132,7 +1132,12 @@ sockopt_impl!(
     libc::UDP_SEGMENT,
     libc::c_int
 );
+
+#[cfg(target_os = "android")]
+const UDP_GRO: c_int = 104;
 #[cfg(target_os = "linux")]
+const UDP_GRO: c_int = libc::UDP_GRO;
+
 #[cfg(feature = "net")]
 sockopt_impl!(
     #[cfg_attr(docsrs, doc(cfg(feature = "net")))]
@@ -1141,7 +1146,7 @@ sockopt_impl!(
     UdpGroSegment,
     Both,
     libc::IPPROTO_UDP,
-    libc::UDP_GRO,
+    UDP_GRO,
     bool
 );
 #[cfg(target_os = "linux")]
