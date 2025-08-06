@@ -259,8 +259,11 @@ impl SockProtocol {
     #[cfg(linux_android)]
     #[allow(non_upper_case_globals)]
     #[cfg(target_endian = "little")]
-    pub const EthIp: SockProtocol = unsafe { std::mem::transmute::<i32, SockProtocol>((libc::ETH_P_IP as u16).to_be() as i32) };
-
+    pub const EthIp: SockProtocol = unsafe {
+        std::mem::transmute::<i32, SockProtocol>(
+            (libc::ETH_P_IP as u16).to_be() as i32,
+        )
+    };
 }
 #[cfg(linux_android)]
 libc_bitflags! {
@@ -986,10 +989,15 @@ impl From<u8> for TlsGetRecordType {
     }
 }
 
+// HACK: inline UDP GSO/GRO constants to make it compile on Android
 #[cfg(target_os = "android")]
 const UDP_GRO: c_int = 104;
 #[cfg(target_os = "linux")]
 const UDP_GRO: c_int = libc::UDP_GRO;
+#[cfg(target_os = "android")]
+const UDP_SEGMENT: c_int = 103;
+#[cfg(target_os = "linux")]
+const UDP_SEGMENT: c_int = libc::UDP_SEGMENT;
 
 impl ControlMessageOwned {
     /// Decodes a `ControlMessageOwned` from raw bytes.
@@ -1270,7 +1278,7 @@ pub enum ControlMessage<'a> {
     /// passed through this control message.
     /// Send buffer should consist of multiple fixed-size wire payloads
     /// following one by one, and the last, possibly smaller one.
-    #[cfg(target_os = "linux")]
+    #[cfg(linux_android)]
     #[cfg(feature = "net")]
     #[cfg_attr(docsrs, doc(cfg(feature = "net")))]
     UdpGsoSegments(&'a u16),
@@ -1442,7 +1450,7 @@ impl ControlMessage<'_> {
             ControlMessage::AlgSetAeadAssoclen(len) => {
                 len as *const _ as *const u8
             },
-            #[cfg(target_os = "linux")]
+            #[cfg(linux_android)]
             #[cfg(feature = "net")]
             ControlMessage::UdpGsoSegments(gso_size) => {
                 gso_size as *const _ as *const u8
@@ -1520,7 +1528,7 @@ impl ControlMessage<'_> {
             ControlMessage::AlgSetAeadAssoclen(len) => {
                 mem::size_of_val(len)
             },
-            #[cfg(target_os = "linux")]
+            #[cfg(linux_android)]
             #[cfg(feature = "net")]
             ControlMessage::UdpGsoSegments(gso_size) => {
                 mem::size_of_val(gso_size)
@@ -1577,7 +1585,7 @@ impl ControlMessage<'_> {
             #[cfg(linux_android)]
             ControlMessage::AlgSetIv(_) | ControlMessage::AlgSetOp(_) |
                 ControlMessage::AlgSetAeadAssoclen(_) => libc::SOL_ALG,
-            #[cfg(target_os = "linux")]
+            #[cfg(linux_android)]
             #[cfg(feature = "net")]
             ControlMessage::UdpGsoSegments(_) => libc::SOL_UDP,
             #[cfg(any(linux_android, target_os = "netbsd", apple_targets))]
@@ -1629,10 +1637,10 @@ impl ControlMessage<'_> {
             ControlMessage::AlgSetAeadAssoclen(_) => {
                 libc::ALG_SET_AEAD_ASSOCLEN
             },
-            #[cfg(target_os = "linux")]
+            #[cfg(linux_android)]
             #[cfg(feature = "net")]
             ControlMessage::UdpGsoSegments(_) => {
-                libc::UDP_SEGMENT
+                UDP_SEGMENT
             },
             #[cfg(any(linux_android, target_os = "netbsd", apple_targets))]
             #[cfg(feature = "net")]
